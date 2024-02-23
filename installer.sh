@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # ###########################################
 # SCRIPT : DOWNLOAD AND INSTALL YouTube
 # ###########################################
@@ -8,47 +8,31 @@
 # ###########################################
 
 ###########################################
+# Configure where we can find things here #
+MY_URL="https://raw.githubusercontent.com/emil237/YouTube/main"
 TMPDIR='/tmp'
-PACKAGE='enigma2-plugin-extensions-youtube'
-MY_URL='https://raw.githubusercontent.com/emil237/YouTube/main'
-PYTHON_VERSION=$(python -c"import sys; print(sys.version_info.major)")
-
+PLUGINDIR='/usr/lib/enigma2/python/Plugins/Extensions'
+MYTARPY2="youtube-py2.tar.gz"
+MYTARPY3="youtube-py3.tar.gz"
+#######################
+# Remove Old Version #
+rm -rf $PLUGINDIR/YouTube
+rm -rf $TMPDIR/*youtube*
+sleep 3;
 #########################
 if [ -f /etc/opkg/opkg.conf ]; then
     STATUS='/var/lib/opkg/status'
     OSTYPE='Opensource'
     OPKG='opkg update'
     OPKGINSTAL='opkg install'
-    OPKGLIST='opkg list-installed'
-    OPKGREMOV='opkg remove --force-depends'
 elif [ -f /etc/apt/apt.conf ]; then
     STATUS='/var/lib/dpkg/status'
     OSTYPE='DreamOS'
     OPKG='apt-get update'
     OPKGINSTAL='apt-get install'
-    OPKGLIST='apt-get list-installed'
-    OPKGREMOV='apt-get purge --auto-remove'
-    DPKINSTALL='dpkg -i --force-overwrite'
 fi
-
+sleep 2;
 #########################
-VERSION=$(wget $MY_URL/version -qO- | grep 'version' | cut -d "=" -f2-)
-GIT=$(wget $MY_URL/version -qO- | grep 'commit' | cut -d "=" -f2-)
-CHECK_VERSION=$($OPKGLIST $PACKAGE | cut -d'+' -f2 | awk '{ print $1 }')
-rm -rf $TMPDIR/"${PACKAGE:?}"* >/dev/null 2>&1
-
-#########################
-if [ "$CHECK_VERSION" = "$VERSION" ]; then
-    echo " You are use the laste Version: $VERSION"
-    exit 1
-elif [ -z "$CHECK_VERSION" ]; then
-    echo
-    clear
-else
-    $OPKGREMOV $PACKAGE
-fi
-
-########################
 install() {
     if grep -qs "Package: $1" $STATUS; then
         echo
@@ -56,58 +40,116 @@ install() {
         $OPKG >/dev/null 2>&1
         echo "   >>>>   Need to install $1   <<<<"
         echo
-        $OPKGINSTAL "$1"
-        sleep 1
-        clear
+        if [ $OSTYPE = "Opensource" ]; then
+            $OPKGINSTAL "$1"
+            sleep 1
+        elif [ $OSTYPE = "DreamOS" ]; then
+            $OPKGINSTAL "$1" -y
+            sleep 1
+        fi
     fi
 }
 
-########################
-if [ "$PYTHON_VERSION" -eq 3 ]; then
-    for i in python3-codecs python3-core python3-json python3-netclient; do
-        install $i
-    done
+#########################
+if [ -f /usr/bin/python3 ] ; then
+    echo ":You have Python3 image ..."
+    sleep 1
+    Packagegettext=gettext
+    Packagescodecs=python3-codecs
+    Packagecore=python3-core
+    Packagejson=python3-json
+    Packagenetclient=python3-netclient
+    Packagepyopenssl=python3-pyopenssl
+    Packagetwistedweb=python3-twisted-web
 else
-    for i in python-codecs python-core python-json python-netclient; do
-        install $i
-    done
-    if [ $OSTYPE = "DreamOS" ]; then
-        for d in gstreamer1.0-plugins-base-meta gstreamer1.0-plugins-good-spectrum; do
-            install $d
-        done
-    fi
+    echo ":You have Python2 image ..."
+    sleep 1
+    Packagegettext=gettext
+    Packagescodecs=python-codecs
+    Packagecore=python-core
+    Packagejson=python-json
+    Packagenetclient=python-netclient
+    Packagepyopenssl=python-pyopenssl
+    Packagetwistedweb=python-twisted-web
 fi
 
-########################
-echo "Insallling YouTube plugin Please Wait ......"
+# check depends packges if installed
+install $Packagegettext
+install $Packagescodecs
+install $Packagecore
+install $Packagejson
+install $Packagenetclient
+install $Packagepyopenssl
+install $Packagetwistedweb
+
+#########################
+# Remove old version
 if [ $OSTYPE = "Opensource" ]; then
-    wget $MY_URL/${PACKAGE}_h1+"${VERSION}"+"${GIT}"-r0.0_all.ipk -qP $TMPDIR
-    $OPKGINSTAL $TMPDIR/${PACKAGE}_h1+"${VERSION}"+"${GIT}"-r0.0_all.ipk
+    opkg remove enigma2-plugin-extensions-youtube
 else
-    wget $MY_URL/${PACKAGE}_h1+"${VERSION}"+"${GIT}"-r0.0_all.deb -qP $TMPDIR
-    $DPKINSTALL $TMPDIR/${PACKAGE}_h1+"${VERSION}"+"${GIT}"-r0.0_all.deb
-    $OPKGINSTAL -f -y
+    apt remove enigma2-plugin-extensions-youtube -y
 fi
-
-########################
-rm -rf $TMPDIR/"${PACKAGE:?}"*
-
-if [ -f /etc/enigma2/YouTube.key-opkg ]; then
-    rm -rf /etc/enigma2/YouTube.key-opkg
-else
-    echo
-
-fi
-
+#########################
+clear
+sleep 2;
+cd $TMPDIR
+set -e
+echo "Downloading And Insallling YouTube plugin Please Wait ......"
+echo
+if python --version 2>&1 | grep -q '^Python 3\.'; then
+  wget "$MY_URL/$MYTARPY3"
+tar -xzf $MYTARPY3  -C /
 echo ""
-echo "***********************************************************************"
-echo "**                                                                    *"
-echo "**                       YouTube    : $VERSION                            *"
-echo "**                       Uploaded by: Mohammed_Os                     *"
-echo "**                       Develop by : Taapat                          *"
-echo "**                                                                    *"
-echo "***********************************************************************"
 echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+sleep 1;
+cd
+rm -f /tmp/$MYTARPY3
+echo "OK"
+	else 
+echo "   Install Plugin please wait "
+   wget "$MY_URL/$MYTARPY2"
+tar -xzf $MYTARPY2  -C /
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+sleep 1;
+cd
+rm -f /tmp/$MYTARPY2
+echo "OK"
+	fi
+set +e
+cd ..
+#########################
+#########################
+
+sleep 1
+echo "#########################################################"
+echo "#           YouTube INSTALLED SUCCESSFULLY              #"
+sleep 2;
+echo "#########################################################"
+echo ""
+echo ""
+echo ""
+echo "   UPLOADED BY  >>>>   EMIL_NABIL "   
+sleep 4;
+echo ""
+echo ""
+echo ""
+echo ""
+echo "#           your Device will RESTART Now                #"
+sleep 4;
+echo "#########################################################"
 
 if [ $OSTYPE = "Opensource" ]; then
     killall -9 enigma2
@@ -116,3 +158,8 @@ else
 fi
 
 exit 0
+
+
+
+
+
